@@ -33,3 +33,4 @@ src/migrate.html
 *.njsproj
 *.sln
 *.sw?
+node_modules/
