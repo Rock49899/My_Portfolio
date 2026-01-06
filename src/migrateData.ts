@@ -98,15 +98,31 @@ const migrateData = async () => {
       console.error('❌ Erreur Contact:', error.message, '\n');
     }
 
-    console.log('🎉 Migration terminée avec succès !');
-    console.log('\n📦 Collections créées dans Firestore :');
+    // Créer le mot de passe admin par défaut
+    console.log('Configuration du mot de passe admin...');
+    try {
+      await setDoc(doc(db, 'admin', 'credentials'), {
+        password: 'admin123',
+        createdAt: new Date().toISOString(),
+        note: 'Changez ce mot de passe immédiatement après la première connexion!'
+      });
+      console.log('Mot de passe admin créé: admin123 (à changer!)\n');
+    } catch (error) {
+      console.error('Erreur création mot de passe admin:', error.message, '\n');
+    }
+
+    console.log('Migration terminée avec succès !');
+    console.log('\nCollections créées dans Firestore :');
     console.log('  - skills (compétences)');
     console.log('  - services');
     console.log('  - projects (projets)');
     console.log('  - about (à propos)');
     console.log('  - hero (page d\'accueil)');
     console.log('  - contact');
+    console.log('  - admin (mot de passe)');
     console.log('\n✏️  Toutes les données sont maintenant éditables depuis Firebase Console !');
+    console.log('\n🔑 Mot de passe admin par défaut: admin123');
+    console.log('⚠️  IMPORTANT: Changez-le immédiatement via le dashboard!');
   } catch (error) {
     console.error('❌ Erreur lors de la migration :', error);
     throw error;

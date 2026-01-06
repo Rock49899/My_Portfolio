@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Edit2, Trash2, Plus, Save, X } from 'lucide-react';
+import { Edit2, Trash2, Plus, Save, X, LogOut, Key } from 'lucide-react';
 
 interface DataItem {
   id: string;
@@ -15,6 +15,11 @@ const Admin: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>({});
   const [isAdding, setIsAdding] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
 
   const collections = {
     skills: { name: 'Compétences', fields: ['name', 'level', 'category'] },
@@ -28,6 +33,14 @@ const Admin: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  useEffect(() => {
+    // Vérifier si déjà authentifié dans cette session
+    const auth = sessionStorage.getItem('admin_auth');
+    if (auth === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -76,6 +89,71 @@ const Admin: React.FC = () => {
       loadData();
     } catch (error) {
       console.error('Erreur ajout:', error);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // Récupérer le mot de passe depuis Firestore
+      const adminDoc = await getDoc(doc(db, 'admin', 'credentials'));
+      
+      if (!adminDoc.exists()) {
+        // Première connexion: créer le mot de passe par défaut
+        await setDoc(doc(db, 'admin', 'credentials'), {
+          password: 'admin123', // Mot de passe par défaut
+          createdAt: new Date().toISOString()
+        });
+        alert('Mot de passe par défaut créé: admin123. Changez-le immédiatement!');
+        return;
+      }
+
+      const storedPassword = adminDoc.data().password;
+      
+      if (password === storedPassword) {
+        setIsAuthenticated(true);
+        sessionStorage.setItem('admin_auth', 'true');
+      } else {
+        alert('Mot de passe incorrect!');
+      }
+    } catch (error) {
+      console.error('Erreur authentification:', error);
+      alert('Erreur de connexion');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    sessionStorage.removeItem('admin_auth');
+    setPassword('');
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      alert('Les mots de passe ne correspondent pas!');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert('Le mot de passe doit contenir au moins 6 caractères!');
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, 'admin', 'credentials'), {
+        password: newPassword,
+        updatedAt: new Date().toISOString()
+      });
+      
+      alert('Mot de passe changé avec succès!');
+      setShowPasswordModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error('Erreur changement mot de passe:', error);
+      alert('Erreur lors du changement de mot de passe');
     }
   };
 
@@ -163,10 +241,110 @@ const Admin: React.FC = () => {
     );
   };
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-8">
+        <div className="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+          <h1 className="text-3xl font-bold mb-6 text-center">🔐 Admin Access</h1>
+          <form onSubmit={handleLogin}>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Entrez le mot de passe admin"
+              className="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:ring-2 focus:ring-orange-500"
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700"
+            >
+              Se connecter
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-gray-800">🎛️ Dashboard Admin</h1>
+        {/* Header avec boutons alignés à gauche */}
+        <div className="flex gap-3 mb-8">
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Key size={20} />
+            Changer mot de passe
+          </button>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+          >
+            <LogOut size={20} />
+            Déconnexion
+          </button>
+        </div>
+
+        {/* Modal changement de mot de passe */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white p-8 rounded-lg shadow-2xl max-w-md w-full">
+              <h2 className="text-2xl font-bold mb-6">🔑 Changer le mot de passe</h2>
+              <form onSubmit={handleChangePassword}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nouveau mot de passe
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      placeholder="Au moins 6 caractères"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Confirmer le mot de passe
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                      placeholder="Retapez le mot de passe"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
+                  >
+                    Enregistrer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordModal(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="flex-1 bg-gray-600 text-white py-3 rounded-lg font-semibold hover:bg-gray-700"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto">
