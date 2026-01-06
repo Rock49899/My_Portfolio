@@ -12,6 +12,17 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Firebase
+serviceAccountKey.json
+
+# Migration files (optionnel, tu peux les garder)
+src/migrate.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

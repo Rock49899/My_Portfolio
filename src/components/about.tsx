@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Code, Smartphone, Database, Globe } from 'lucide-react';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface Skill {
   name: string;
@@ -7,38 +9,68 @@ interface Skill {
   category: string;
 }
 
-const About: React.FC = () => {
-  const skills: Skill[] = [
-    { name: 'Laravel', level: 85, category: 'Backend' },
-     { name: 'Vue.js', level: 80, category: 'Frontend' },
-     { name: 'React.js', level: 70, category: 'Frontend' },   
-    { name: 'React Native', level: 65, category: 'Mobile' },
-    { name: 'MongoDB', level: 70, category: 'Database' },
-    { name: 'MySQL', level: 65, category: 'Database' },
-  ];
+interface Service {
+  icon: string;
+  title: string;
+  description: string;
+}
 
-  const services = [
-    {
-      icon: <Code size={32} />,
-      title: 'Web Development',
-      description: 'Modern and responsive web applications using React, Vue, and the latest technologies.',
-    },
-    {
-      icon: <Smartphone size={32} />,
-      title: 'Mobile Development',
-      description: 'Cross-platform mobile apps with React Native and Flutter for iOS and Android.',
-    },
-    {
-      icon: <Database size={32} />,
-      title: 'Backend Development',
-      description: 'API creation and consumption - Server-side logic management with Node.js, Express and databases.',
-    },
-    {
-      icon: <Globe size={32} />,
-      title: 'Full Stack Solutions',
-      description: 'End-to-end development from concept to deployment and maintenance.',
-    },
-  ];
+interface AboutInfo {
+  title: string;
+  description1: string;
+  description2: string;
+  image: string;
+  stats: {
+    projectsCompleted: number;
+    languagesMastered: number;
+  };
+}
+
+const About: React.FC = () => {
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [aboutInfo, setAboutInfo] = useState<AboutInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        // Charger skills
+        const skillsSnapshot = await getDocs(collection(db, 'skills'));
+        setSkills(skillsSnapshot.docs.map(doc => doc.data() as Skill));
+
+        // Charger services
+        const servicesSnapshot = await getDocs(collection(db, 'services'));
+        setServices(servicesSnapshot.docs.map(doc => doc.data() as Service));
+
+        // Charger about
+        const aboutDoc = await getDoc(doc(db, 'about', 'main'));
+        if (aboutDoc.exists()) {
+          setAboutInfo(aboutDoc.data() as AboutInfo);
+        }
+      } catch (error) {
+        console.error('Erreur chargement:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  if (loading) {
+    return <div className="py-20 text-center">Chargement...</div>;
+  }
+
+  const getIcon = (iconName: string) => {
+    const icons: any = {
+      Code: <Code size={32} />,
+      Smartphone: <Smartphone size={32} />,
+      Database: <Database size={32} />,
+      Globe: <Globe size={32} />,
+    };
+    return icons[iconName] || <Code size={32} />;
+  };
 
   return (
     <section id="about" className="py-20 bg-white">
@@ -58,34 +90,35 @@ const About: React.FC = () => {
           {/* Left - Image */}
           <div className="relative animate-slideInLeft">
             <img
-              src="https://images.unsplash.com/photo-1571171637578-41bc2dd41cd2?w=600&h=700&fit=crop"
+              src={aboutInfo?.image}
               alt="About me"
               className="rounded-2xl shadow-xl w-25"
             />
-            
           </div>
 
           {/* Right - Content */}
           <div className="space-y-6 animate-slideInRight">
             <h3 className="text-3xl font-bold text-gray-800">
-              Fullstack Developer passionate about creating innovative solutions
+              {aboutInfo?.title}
             </h3>
             <p className="text-gray-600 leading-relaxed">
-              I'm a junior fullstack developer with a strong foundation in modern web and mobile technologies. 
-              I love turning ideas into elegant, functional applications that make a difference.
+              {aboutInfo?.description1}
             </p>
             <p className="text-gray-600 leading-relaxed">
-              With expertise in both frontend and backend development, I create seamless user experiences 
-              backed by robust server-side architecture. Always learning, always improving.
+              {aboutInfo?.description2}
             </p>
 
             <div className="grid grid-cols-2 gap-4 pt-4">
               <div>
-                <div className="text-orange-600 text-3xl font-bold">8+</div>
+                <div className="text-orange-600 text-3xl font-bold">
+                  {aboutInfo?.stats.projectsCompleted}+
+                </div>
                 <div className="text-gray-600">Projects Completed</div>
               </div>
               <div>
-                <div className="text-orange-600 text-3xl font-bold">6+</div>
+                <div className="text-orange-600 text-3xl font-bold">
+                  {aboutInfo?.stats.languagesMastered}+
+                </div>
                 <div className="text-gray-600">Languages Mastered</div>
               </div>
             </div>
@@ -128,7 +161,7 @@ const About: React.FC = () => {
                 style={{ animationDelay: `${index * 150}ms` }}
               >
                 <div className="w-16 h-16 bg-orange-600 text-white rounded-xl flex items-center justify-center mb-4 transform transition-transform hover:rotate-6">
-                  {service.icon}
+                  {getIcon(service.icon)}
                 </div>
                 <h4 className="text-xl font-bold mb-3 text-gray-800">{service.title}</h4>
                 <p className="text-gray-600 leading-relaxed">{service.description}</p>

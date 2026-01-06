@@ -1,7 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Heart, ArrowUp } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 const Footer: React.FC = () => {
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadSocialLinks = async () => {
+      try {
+        const contactDoc = await getDoc(doc(db, 'contact', 'main'));
+        if (contactDoc.exists()) {
+          setSocialLinks(contactDoc.data().socialLinks || []);
+        }
+      } catch (error) {
+        console.error('Erreur chargement social links:', error);
+      }
+    };
+
+    loadSocialLinks();
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

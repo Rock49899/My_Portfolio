@@ -1,11 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { Github, Linkedin, Mail, ArrowDown } from 'lucide-react';
 import portrait from '../assets/PORRRTRAIT.png';
 
 const Hero: React.FC = () => {
+  const [heroData, setHeroData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadHeroData = async () => {
+      try {
+        const heroDoc = await getDoc(doc(db, 'hero', 'main'));
+        if (heroDoc.exists()) {
+          setHeroData(heroDoc.data());
+        }
+      } catch (error) {
+        console.error('Erreur chargement hero:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadHeroData();
+  }, []);
+
   const scrollToProjects = () => {
     document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  if (loading) return <div className="h-screen flex items-center justify-center">Chargement...</div>;
 
   return (
     <section
@@ -29,7 +53,7 @@ const Hero: React.FC = () => {
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight">
               Hi, I'm{'  '}
               <span className="text-orange-600 relative">
-                Rock HOUINSOU
+                {heroData?.name || 'Your Name'}
                 <svg className="absolute -bottom-2 left-0 w-full" height="12" viewBox="0 0 200 12">
                   <path d="M0 8 Q50 2, 100 8 T200 8" stroke="#FF6B35" strokeWidth="3" fill="none" />
                 </svg>
@@ -37,12 +61,11 @@ const Hero: React.FC = () => {
             </h1>
 
             <h2 className="text-2xl md:text-3xl text-gray-600 font-light">
-              Fullstack Developer Junior
+              {heroData?.title || 'Fullstack Developer Junior'}
             </h2>
 
             <p className="text-gray-600 text-lg leading-relaxed max-w-lg">
-              Passionate about crafting elegant web & mobile solutions using modern technologies. 
-              Specialized in Laravel, Vue, Node.js, React and mobile development.
+              {heroData?.description || 'Passionate about crafting elegant web & mobile solutions using modern technologies. Specialized in Laravel, Vue, Node.js, React and mobile development.'}
             </p>
 
             <div className="flex flex-wrap gap-4 pt-4">

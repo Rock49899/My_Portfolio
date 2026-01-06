@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Mail, MapPin, Phone, Send } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface FormData {
   name: string;
@@ -19,6 +21,26 @@ const Contact: React.FC = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const [contactData, setContactData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadContactData = async () => {
+      try {
+        const contactDoc = await getDoc(doc(db, 'contact', 'main'));
+        if (contactDoc.exists()) {
+          setContactData(contactDoc.data());
+        }
+      } catch (error) {
+        console.error('Erreur chargement contact:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadContactData();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -61,26 +83,7 @@ const Contact: React.FC = () => {
     }
   };
 
-  const contactInfo = [
-    {
-      icon: <Mail size={24} />,
-      title: 'Email',
-      content: 'rock.houinsou@epitech.eu',
-      link: 'mailto:rock.houinsou@epitech.eu',
-    },
-    {
-      icon: <Phone size={24} />,
-      title: 'Phone',
-      content: '+229 01 667 411 91',
-      link: 'tel:+2290166741191',
-    },
-    {
-      icon: <MapPin size={24} />,
-      title: 'Location',
-      content: 'Cotonou, Benin',
-      link: null,
-    },
-  ];
+  if (loading) return <div className="py-20 text-center">Chargement...</div>;
 
   return (
     <section id="contact" className="py-20 bg-white relative overflow-hidden">
@@ -116,30 +119,28 @@ const Contact: React.FC = () => {
               </p>
             </div>
 
-            <div className="space-y-6">
-              {contactInfo.map((info, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 bg-orange-50 rounded-xl hover:bg-orange-100 transition-colors"
-                >
-                  <div className="w-12 h-12 bg-orange-600 text-white rounded-lg flex items-center justify-center flex-shrink-0">
-                    {info.icon}
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">{info.title}</h4>
-                    {info.link ? (
-                      <a
-                        href={info.link}
-                        className="text-gray-600 hover:text-orange-600 transition-colors"
-                      >
-                        {info.content}
-                      </a>
-                    ) : (
-                      <p className="text-gray-600">{info.content}</p>
-                    )}
-                  </div>
+            <div className="grid md:grid-cols-3 gap-8 mb-12">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail size={24} />
                 </div>
-              ))}
+                <h4 className="font-semibold text-gray-800 mb-1">Email</h4>
+                <p className="text-gray-600">{contactData?.email}</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Phone size={24} />
+                </div>
+                <h4 className="font-semibold text-gray-800 mb-1">Phone</h4>
+                <p className="text-gray-600">{contactData?.phone}</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MapPin size={24} />
+                </div>
+                <h4 className="font-semibold text-gray-800 mb-1">Location</h4>
+                <p className="text-gray-600">{contactData?.location}</p>
+              </div>
             </div>
 
             {/* Social Links */}
@@ -325,4 +326,5 @@ const Contact: React.FC = () => {
     </section>
   );
 };
+
 export default Contact;

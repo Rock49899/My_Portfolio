@@ -8,6 +8,7 @@ import Footer from './components/footer';
 import ProjectTrust from './pages/ProjectTrust';
 import ProjectLtaf from './pages/ProjectLtaf';
 import ProjectMovieReview from './pages/ProjectMovieReview';
+import Admin from './pages/Admin';
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/project/trust" element={<ProjectTrust />} />
         <Route path="/project/ltaf" element={<ProjectLtaf />} />
         <Route path="/project/tomato-reviews" element={<ProjectMovieReview />} />
+        <Route path="/adminsi" element={<Admin />} />
       </Routes>
       <Footer />
     </div>
